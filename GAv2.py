@@ -212,10 +212,13 @@ def objfunc(str): #Returns the value of the objective function for the given str
         #Performs the OLS regression on each cluster, and stores the SSR
         ssr = zeros((clusters))
         for i in xrange(clusters):
-                ssr[i] = ols(clusterdataY[i], clusterdataX[i], i)
+                if clusterdataX[i].shape[0] > parameters:
+                        ssr[i] = ols(clusterdataY[i], clusterdataX[i], i)
+                else:
+                        ssr[i] = 0
         
         #calculates the AIC based on the SSRs of the above regressions
-        return log(ssr.sum()/strlength) - 2*clusters*parameters/strlength
+        return -log(ssr.sum()/strlength) - 2*clusters*parameters/strlength
         
 def ols(y,x,c=0):
         #print x
