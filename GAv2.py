@@ -1,4 +1,5 @@
 # Genetic Algorithm script for clustering
+# See Kapetanios Journal of Economic Dynamics & Control 30 (2006) 1389–1408 for theory and background.
 # 6/29/2011
 # Taylor Smith
 
