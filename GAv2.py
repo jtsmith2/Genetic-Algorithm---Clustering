@@ -6,21 +6,22 @@
 from numpy import *
 import random
 import time
+import os.path
 
 #Defining global constants
 population = 20        #Size of population to originally start with
-strlength = 1000      #Length of genetic string (number of units being clustered)
-parameters = 4                  #Number of variables in X (not including constant term)
+strlength = 4000      #Length of genetic string (number of units being clustered)
+parameters = 3                  #Number of variables in X (not including constant term)
 crossover_rate = 1.00  #Set from 0-1 on how often crossover occurs 
 #mutation_rate = 0.1   #Set form 0-1 on how often mutation occurs
 mutation_rate = 1-((0.3)**(1.0/(1.0*strlength)))  #From Dorsey code. Bases mutation rate on number of strlength being estimated
-reinsert_gen = 100      #determines at which generation the best estimated string so far is reinserted into the population of strings
+reinsert_gen = 15      #determines at which generation the best estimated string so far is reinserted into the population of strings
 reinsert_step = 10              #The number of generations between inserting the "best" string so far back into the generation
-maxgen = 5000000         #Maximum number of generations
+maxgen = 100000         #Maximum number of generations
 #maxgen = strlength*(2000+(strlength-2)*250)  #From Dorsey code
 stop_delta = 1.0E-8    #If improvement between loops is less than this, program terminates
-clusters = 10          #Number of clusters to sort into 
-loops = 10             #Number of times the optimization will run
+clusters = 5          #Number of clusters to sort into 
+loops = 50             #Number of times the optimization will run
 
 #Defining global variables
 top_value=0            #Stores the highest value of the objective function found
@@ -30,6 +31,7 @@ top_loop_string = []   #Stores the string that generated top_loop_value
 reinsert_gen2 = reinsert_gen
 dataX = []
 dataY = []
+save_location = 'D:\Documents\Working Papers\School Quality on Home Prices\Genetic-Algorithm---Clustering\\'
 
 generationnum = 0
 strnum = 0
@@ -49,8 +51,8 @@ def main_program(): #Main program run by last line of this code.
         print "Mutation Rate:", mutation_rate
         print "Start Time:", time.strftime("%I:%M:%S")
         
-        dataX = genfromtxt('randomX.csv', delimiter=",")
-        dataY = genfromtxt('randomY.csv', delimiter=",")
+        dataX = genfromtxt('randomX2.csv', delimiter=",")
+        dataY = genfromtxt('randomY2.csv', delimiter=",")
         
         #print dataX.shape[0]
         #print dataY.shape[0]
@@ -77,12 +79,22 @@ def main_program(): #Main program run by last line of this code.
                         top_value = top_loop_value
                         top_string = top_loop_string
                         print "Intial value of objective function:", start_value
+
+                        if os.path.isfile(save_location + 'TopString.npy'):
+                                gen[0] = load(save_location + 'TopString.npy')
+                                
                 
                 #The genetic algorithm
                 for gener in xrange(maxgen):
                         generationnum = gener
-                        if gener % 10 == 0:
+                        if gener % 1000 == 0:
                                 print "Generation:", gener, "| Time:", time.strftime("%I:%M:%S"), "| Top Loop Value:", top_loop_value, "| Overall Top Value:", top_value
+                                with open(save_location + 'Output.txt', 'a') as f:
+                                                f.write("Generation: " + str(gener) + " | Time: " + time.strftime("%I:%M:%S") + " | Top Loop Value: " + str(top_loop_value) + " | Overall Top Value: " + str(top_value) + "\n")
+                                if gener % 1000 == 0:
+                                        savetxt(save_location + 'TopString.txt', top_string)
+                                        save(save_location + 'TopString.npy', top_string)
+                                        
                         #print "Start Gen", gen
                         prob = calc_fitness(gen) #generates an array of probabilies based on fitness level
                         #print "Probabilities:"
@@ -188,8 +200,12 @@ def objfunc(str): #Returns the value of the objective function for the given str
         #Counts the number of homes in each cluster and stores in "incluster"
         incluster = zeros((clusters))
         for element in str:
-                incluster[element] += 1
-
+                try:
+                        incluster[element] += 1
+                except:
+                        print "Element:", element
+                        print "String:", str
+                        raise
         #print incluster
         
         #Creates empty 2-D arrays for each cluster of the correct size (X and Y)
@@ -232,6 +248,7 @@ def ols(y,x,c=0):
         b = dot(inv_xx,xy)
         e = y - dot(x,b)
         return dot(e.T,e)
+        
         
         
 main_program()  #runs the main program

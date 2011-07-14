@@ -1,0 +1,1 @@
+Generation: 0 | Time: 08:55:22 | Top Loop Value: -6.65725086428 | Overall Top Value: -6.65725086428
