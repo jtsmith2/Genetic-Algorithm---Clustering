@@ -17,11 +17,11 @@ crossover_rate = 1.00  #Set from 0-1 on how often crossover occurs
 mutation_rate = 1-((0.3)**(1.0/(1.0*strlength)))  #From Dorsey code. Bases mutation rate on number of strlength being estimated
 reinsert_gen = 15      #determines at which generation the best estimated string so far is reinserted into the population of strings
 reinsert_step = 10              #The number of generations between inserting the "best" string so far back into the generation
-maxgen = 100000         #Maximum number of generations
+maxgen = 50000         #Maximum number of generations
 #maxgen = strlength*(2000+(strlength-2)*250)  #From Dorsey code
 stop_delta = 1.0E-8    #If improvement between loops is less than this, program terminates
 clusters = 5          #Number of clusters to sort into 
-loops = 50             #Number of times the optimization will run
+loops = 100             #Number of times the optimization will run
 
 #Defining global variables
 top_value=0            #Stores the highest value of the objective function found
@@ -72,14 +72,15 @@ def main_program(): #Main program run by last line of this code.
                         for j in xrange(strlength):
                                 gen[i,j] = random.randrange(clusters)
                         
+                
+                start_value = objfunc(gen[0,:]) #Pass first string to get inital value of objective function
+                top_loop_value = start_value  #save the value of the best string so far
+                top_loop_string = gen[0,:]  #the best string so far (the only string so far)
+                print "Intial value of objective function:", start_value
+
                 if x == 0:
-                        start_value = objfunc(gen[0,:]) #Pass first string to get inital value of objective function
-                        top_loop_value = start_value  #save the value of the best string so far
-                        top_loop_string = gen[0,:]  #the best string so far (the only string so far)
                         top_value = top_loop_value
                         top_string = top_loop_string
-                        print "Intial value of objective function:", start_value
-
                         if os.path.isfile(save_location + 'TopString.npy'):
                                 gen[0] = load(save_location + 'TopString.npy')
                                 
@@ -204,6 +205,7 @@ def objfunc(str): #Returns the value of the objective function for the given str
                         incluster[element] += 1
                 except:
                         print "Element:", element
+                        set_printoptions(threshold=5000)
                         print "String:", str
                         raise
         #print incluster
