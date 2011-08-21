@@ -9,19 +9,19 @@ import time
 import os.path
 
 #Defining global constants
-population = 20        #Size of population to originally start with
+population = 20        #Size of population to originally start with (MUST BE EVEN)
 strlength = 4000      #Length of genetic string (number of units being clustered)
-parameters = 3                  #Number of variables in X (not including constant term)
+parameters = 3          #Number of variables in X (not including constant term)
 crossover_rate = 1.00  #Set from 0-1 on how often crossover occurs 
 #mutation_rate = 0.1   #Set form 0-1 on how often mutation occurs
 mutation_rate = 1-((0.3)**(1.0/(1.0*strlength)))  #From Dorsey code. Bases mutation rate on number of strlength being estimated
 reinsert_gen = 15      #determines at which generation the best estimated string so far is reinserted into the population of strings
 reinsert_step = 10              #The number of generations between inserting the "best" string so far back into the generation
-maxgen = 50000         #Maximum number of generations
+maxgen = 5000         #Maximum number of generations
 #maxgen = strlength*(2000+(strlength-2)*250)  #From Dorsey code
 stop_delta = 1.0E-8    #If improvement between loops is less than this, program terminates
 clusters = 5          #Number of clusters to sort into 
-loops = 100             #Number of times the optimization will run
+loops = 500             #Number of times the optimization will run
 
 #Defining global variables
 top_value=0            #Stores the highest value of the objective function found
@@ -35,6 +35,7 @@ save_location = 'D:\Documents\Working Papers\School Quality on Home Prices\Genet
 
 generationnum = 0
 strnum = 0
+top_value_start = 0
 
 # Defining functions to use later
 def main_program(): #Main program run by last line of this code.
@@ -45,6 +46,8 @@ def main_program(): #Main program run by last line of this code.
         global dataX
         global dataY
         global generationnum
+        global reinsert_gen2
+        global top_value_start
         
         print "Starting Algorithm"
         print "Max Generations:", maxgen
@@ -53,9 +56,6 @@ def main_program(): #Main program run by last line of this code.
         
         dataX = genfromtxt('randomX2.csv', delimiter=",")
         dataY = genfromtxt('randomY2.csv', delimiter=",")
-        
-        #print dataX.shape[0]
-        #print dataY.shape[0]
         
         gen = zeros((population, strlength))  #Create a 2-D array of size population by strlength
         
@@ -81,39 +81,35 @@ def main_program(): #Main program run by last line of this code.
                 if x == 0:
                         top_value = top_loop_value
                         top_string = top_loop_string
-                        if os.path.isfile(save_location + 'TopString.npy'):
+                        if os.path.isfile(save_location + 'TopString.npy'): #Loads best string if the file exists (in event of power loss)
                                 gen[0] = load(save_location + 'TopString.npy')
-                                
+
+                top_value_start = top_value #Records what the best value was at the start of the loop.                
                 
                 #The genetic algorithm
                 for gener in xrange(maxgen):
                         generationnum = gener
-                        if gener % 1000 == 0:
+                        if gener % 500 == 0:  #Gives some summary stats every so often, also saves best string in case of power loss, etc
                                 print "Generation:", gener, "| Time:", time.strftime("%I:%M:%S"), "| Top Loop Value:", top_loop_value, "| Overall Top Value:", top_value
                                 with open(save_location + 'Output.txt', 'a') as f:
                                                 f.write("Generation: " + str(gener) + " | Time: " + time.strftime("%I:%M:%S") + " | Top Loop Value: " + str(top_loop_value) + " | Overall Top Value: " + str(top_value) + "\n")
-                                if gener % 1000 == 0:
-                                        savetxt(save_location + 'TopString.txt', top_string)
-                                        save(save_location + 'TopString.npy', top_string)
-                                        
-                        #print "Start Gen", gen
+                                if gener % 500 == 0: #could be set to happen less frequently if the above output happens very frequently.
+                                        savetxt(save_location + 'TopString.txt', top_string) #For easy input into excel
+                                        save(save_location + 'TopString.npy', top_string) #Easy to read back into program
+               
                         prob = calc_fitness(gen) #generates an array of probabilies based on fitness level
-                        #print "Probabilities:"
-                        #print prob
+ 
                         newgen = draw_from_current(gen, prob) #draws new group from old using above calculated probabilities
-                        #print "Gen after draw:"
-                        #print newgen
+ 
                         newgen = crossover(newgen, gener) #crossover step where strings are paired and combined to form new strings
-                        #print "Gen after crossover"
-                        #print newgen
+
                         gen = mutate(newgen, gener) #mutate step to randomly assign some bits to new clusters, and if reinsert_gen, does that
-                        #print "Gen after mutate"
-                        #print gen
+
                         
                 print "Best value of objective function after cycle:", top_loop_value
                 
                 #Stop condition
-                if abs(top_loop_value - top_value) < stop_delta and x > 1:
+                if abs(top_value_start - top_value) < stop_delta and x > 1:  #If there's been no (or little) improvement in the loop, stop.
                         print "Stop condition met."
                         break;
                 
@@ -131,7 +127,7 @@ def calc_fitness(generation): #Calculates fitness values and generates the draw 
         global strnum
         
         fitness = zeros((population))
-        
+
         for x in xrange(population):
                 strnum = x
                 fitness[x] = objfunc(generation[x])  #Calculate objective function for each string
@@ -142,15 +138,14 @@ def calc_fitness(generation): #Calculates fitness values and generates the draw 
                                 top_value = top_loop_value
                                 top_string = top_loop_string
                         
-        #print "Fitness"
-        #print fitness
+        
         fitness = fitness - fitness.min()
         if fitness.sum() == 0:
                 fitsum = 1
                 print "All zero fitness"
         else:
                 fitsum = fitness.sum()
-        #print fitness.sum()
+                
         result = fitness / float(fitsum)  #Normalize the fitness values to probabilities that sum to 1
         return result
         
@@ -191,7 +186,7 @@ def mutate(generation, gennum): #Randomly mutates individual string bits based o
                         if random.random() < mutation_rate:
                                 generation[i,j] = random.randrange(clusters)
         
-        if gennum == reinsert_gen2:
+        if gennum == reinsert_gen2:  #reseeds the best string so far back into the population
                 generation[random.randrange(population)] = top_string
                 reinsert_gen2 += reinsert_step
                 
@@ -200,17 +195,16 @@ def mutate(generation, gennum): #Randomly mutates individual string bits based o
 def objfunc(str): #Returns the value of the objective function for the given string
         #Counts the number of homes in each cluster and stores in "incluster"
         incluster = zeros((clusters))
-        for element in str:
+        for element in xrange(str.shape[0]):
                 try:
-                        incluster[element] += 1
+                        incluster[str[element]] += 1
                 except:
                         print "Element:", element
                         set_printoptions(threshold=5000)
                         print "String:", str
                         raise
-        #print incluster
-        
-        #Creates empty 2-D arrays for each cluster of the correct size (X and Y)
+
+        #Creates empty 2-D arrays for each cluster of the correct size (X and Y), and appends them to a list
         clusterdataX = list([])
         clusterdataY = list([])
         
@@ -218,16 +212,13 @@ def objfunc(str): #Returns the value of the objective function for the given str
                 clusterdataX.append(zeros((incluster[x], parameters)))
                 clusterdataY.append(zeros((incluster[x])))
 
-        #print len(clusterdataX)
-        #print clusterdataX[1]
         #Sorts the data into the correct cluster data array
         clusterinsertcount = zeros((clusters))
         for i in xrange(strlength):
                 clusterdataX[int(str[i])][clusterinsertcount[int(str[i])]] = dataX[i]
                 clusterdataY[int(str[i])][clusterinsertcount[int(str[i])]] = dataY[i]
                 clusterinsertcount[int(str[i])] += 1
-        
-        #print clusterinsertcount, clusterdataX[0].shape[0]
+
         #Performs the OLS regression on each cluster, and stores the SSR
         ssr = zeros((clusters))
         for i in xrange(clusters):
@@ -235,12 +226,11 @@ def objfunc(str): #Returns the value of the objective function for the given str
                         ssr[i] = ols(clusterdataY[i], clusterdataX[i], i)
                 else:
                         ssr[i] = 0
-        
-        #calculates the AIC based on the SSRs of the above regressions
+
+        #calculates the AIC based on the SSRs of the above regressions     
         return -log(ssr.sum()/strlength) - 2*clusters*parameters/strlength
         
 def ols(y,x,c=0):
-        #print x
         try:
                 inv_xx = linalg.inv(dot(x.T,x))
         except linalg.LinAlgError:
