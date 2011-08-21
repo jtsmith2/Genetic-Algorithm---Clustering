@@ -193,37 +193,40 @@ def mutate(generation, gennum): #Randomly mutates individual string bits based o
         return generation
         
 def objfunc(str): #Returns the value of the objective function for the given string
-        #Counts the number of homes in each cluster and stores in "incluster"
-        incluster = zeros((clusters))
-        for element in xrange(str.shape[0]):
+        #Creates empty 2-D arrays for each cluster of the correct size (X and Y), and appends them to a list
+        clusterdataX = list([])
+        clusterdataY = list([])
+        clusterdataX2 = list([])
+        clusterdataY2 = list([])
+        
+        for x in xrange(clusters):
+                clusterdataX.append(zeros((strlength, parameters)))
+                clusterdataY.append(zeros((strlength)))
+
+        #Sorts data by cluster
+        clusterinsertcount = zeros((clusters))
+        for i in xrange(str.shape[0]):
                 try:
-                        incluster[str[element]] += 1
+                        clusterdataX[int(str[i])][clusterinsertcount[int(str[i])]] = dataX[i]
+                        clusterdataY[int(str[i])][clusterinsertcount[int(str[i])]] = dataY[i]
+                        clusterinsertcount[int(str[i])] += 1
                 except:
-                        print "Element:", element
+                        print "Element:", i
                         set_printoptions(threshold=5000)
                         print "String:", str
                         raise
 
-        #Creates empty 2-D arrays for each cluster of the correct size (X and Y), and appends them to a list
-        clusterdataX = list([])
-        clusterdataY = list([])
-        
+        #Creates new array by slicing to get rid of columns of zeros
         for x in xrange(clusters):
-                clusterdataX.append(zeros((incluster[x], parameters)))
-                clusterdataY.append(zeros((incluster[x])))
-
-        #Sorts the data into the correct cluster data array
-        clusterinsertcount = zeros((clusters))
-        for i in xrange(strlength):
-                clusterdataX[int(str[i])][clusterinsertcount[int(str[i])]] = dataX[i]
-                clusterdataY[int(str[i])][clusterinsertcount[int(str[i])]] = dataY[i]
-                clusterinsertcount[int(str[i])] += 1
+                clusterdataX2.append(clusterdataX[x][:clusterinsertcount[x]])
+                clusterdataY2.append(clusterdataY[x][:clusterinsertcount[x]])
+        
 
         #Performs the OLS regression on each cluster, and stores the SSR
         ssr = zeros((clusters))
         for i in xrange(clusters):
-                if clusterdataX[i].shape[0] > parameters:
-                        ssr[i] = ols(clusterdataY[i], clusterdataX[i], i)
+                if clusterdataX2[i].shape[0] > parameters:
+                        ssr[i] = ols(clusterdataY2[i], clusterdataX2[i], i)
                 else:
                         ssr[i] = 0
 
