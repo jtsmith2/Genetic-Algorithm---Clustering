@@ -84,15 +84,18 @@ def main_program(): #Main program run by last line of this code.
                         if os.path.isfile(save_location + 'TopString.npy'): #Loads best string if the file exists (in event of power loss)
                                 gen[0] = load(save_location + 'TopString.npy')
 
-                top_value_start = top_value #Records what the best value was at the start of the loop.                
+                top_value_start = top_value #Records what the best value was at the start of the loop.
+
+                genruntime = zeros(500)
                 
                 #The genetic algorithm
                 for gener in xrange(maxgen):
+                        t0 = time.clock()
                         generationnum = gener
                         if gener % 500 == 0:  #Gives some summary stats every so often, also saves best string in case of power loss, etc
-                                print "Generation:", gener, "| Time:", time.strftime("%I:%M:%S"), "| Top Loop Value:", top_loop_value, "| Overall Top Value:", top_value
+                                print "Generation:", gener, "| Time:", time.strftime("%I:%M:%S"), "| Top Value:", top_value, "| Avg Runtime:", genruntime.mean()
                                 with open(save_location + 'Output.txt', 'a') as f:
-                                                f.write("Generation: " + str(gener) + " | Time: " + time.strftime("%I:%M:%S") + " | Top Loop Value: " + str(top_loop_value) + " | Overall Top Value: " + str(top_value) + "\n")
+                                                f.write("Generation: " + str(gener) + " | Time: " + time.strftime("%I:%M:%S") + " | Top Value: " + str(top_value) + " | Avg Runtime: " + str(genruntime.mean()) + "\n")
                                 if gener % 500 == 0: #could be set to happen less frequently if the above output happens very frequently.
                                         savetxt(save_location + 'TopString.txt', top_string) #For easy input into excel
                                         save(save_location + 'TopString.npy', top_string) #Easy to read back into program
@@ -104,6 +107,8 @@ def main_program(): #Main program run by last line of this code.
                         newgen = crossover(newgen, gener) #crossover step where strings are paired and combined to form new strings
 
                         gen = mutate(newgen, gener) #mutate step to randomly assign some bits to new clusters, and if reinsert_gen, does that
+
+                        genruntime[gener % 100] = time.clock() - t0  #Saves runtime of gen to array
 
                         
                 print "Best value of objective function after cycle:", top_loop_value
@@ -216,11 +221,11 @@ def objfunc(str): #Returns the value of the objective function for the given str
                         print "String:", str
                         raise
 
-        #Creates new array by slicing to get rid of columns of zeros
+        #Creates a view of data array by slicing to get rid of columns of zeros
         for x in xrange(clusters):
                 clusterdataX2.append(clusterdataX[x][:clusterinsertcount[x]])
                 clusterdataY2.append(clusterdataY[x][:clusterinsertcount[x]])
-        
+
 
         #Performs the OLS regression on each cluster, and stores the SSR
         ssr = zeros((clusters))
